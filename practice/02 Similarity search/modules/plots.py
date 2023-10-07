@@ -241,6 +241,45 @@ def plot_bestmatch_results(ts, query, bestmatch_results):
 
     # INSERT YOUR CODE
 
+    query_len = query.shape[0]
+    ts_len = ts.shape[0]
+
+    fig = make_subplots(rows=1, cols=2, column_widths=[0.1, 0.9], subplot_titles=("Query", "Time Series"), horizontal_spacing=0.04)
+
+    fig.add_trace(go.Scatter(x=np.arange(query_len), y=query, 
+                line=dict(color=px.colors.qualitative.Plotly[1])),
+                row=1, col=1)
+    fig.add_trace(go.Scatter(x=np.arange(ts_len), y=ts, 
+                line=dict(color=px.colors.qualitative.Plotly[0])),
+                row=1, col=2)
+    for i in bestmatch_results['index']:
+      start_res = i * query_len
+      stop_res = start_res + query_len
+      fig.add_trace(go.Scatter(x=np.arange(start_res,stop_res,1), y=ts[start_res:stop_res], 
+                  line=dict(color=px.colors.qualitative.Plotly[1])),
+                  row=1, col=2)
+    fig.update_xaxes(showgrid=False,
+                     linecolor='#000',
+                     ticks="outside",
+                     tickfont=dict(size=18, color='black'),
+                     linewidth=1,
+                     tickwidth=1,
+                     mirror=True)
+    fig.update_yaxes(showgrid=False,
+                     linecolor='#000',
+                     ticks="outside",
+                     tickfont=dict(size=18, color='black'),
+                     zeroline=False,
+                     linewidth=1,
+                     tickwidth=1,
+                     mirror=True)
+
+    fig.update_layout(plot_bgcolor="rgba(0,0,0,0)",
+                      paper_bgcolor='rgba(0,0,0,0)',
+                      showlegend=False,
+                      title_x=0.5)
+                  
+    fig.show(renderer="colab")
 
 def pie_chart(labels, values, plot_title='Pie chart'):
     """

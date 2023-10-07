@@ -30,10 +30,10 @@ class BestMatchFinder:
         Warping window size.
     """
 
-    def __init__(self, ts_data, query, exclusion_zone=1, top_k=3, normalize=True, r=0.05):
+    def __init__(self, ts_data, query=None, exclusion_zone=1, top_k=3, normalize=True, r=0.05, bestmatch = {}):
 
         self.query = copy.deepcopy(np.array(query))
-        if (len(ts_data.shape) == 2): # time series set
+        if (len(np.shape(ts_data)) == 2): # time series set
             self.ts_data = ts_data
         else:
             self.ts_data = sliding_window(ts_data, len(query))
@@ -102,6 +102,7 @@ class BestMatchFinder:
         distances = np.copy(distances)
         top_k_match_idx = []
         top_k_match_dist = []
+        #print('kkk',np.shape(distances))
 
         for i in range(self.top_k):
             min_idx = np.argmin(distances)
@@ -128,8 +129,8 @@ class NaiveBestMatchFinder(BestMatchFinder):
     Naive Best Match Finder.
     """
     
-    def __init__(self, ts=None, query=None, exclusion_zone=1, top_k=3, normalize=True, r=0.05):
-        super().__init__(ts, query, exclusion_zone, top_k, normalize, r)
+    def __init__(self, ts=None, query=None, exclusion_zone=1, top_k=3, normalize=True, r=0.05, bestmatch={}):
+        super().__init__(ts, query, exclusion_zone, top_k, normalize, r, bestmatch={})
 
 
     def perform(self):
@@ -142,7 +143,7 @@ class NaiveBestMatchFinder(BestMatchFinder):
             Dictionary containing results of the naive algorithm.
         """
         N, m = self.ts_data.shape
-        
+        self.bestmatch = {}
         bsf = float("inf")
         
         if (self.excl_zone_denom is None):
@@ -151,6 +152,15 @@ class NaiveBestMatchFinder(BestMatchFinder):
             excl_zone = int(np.ceil(m / self.excl_zone_denom))
         
         # INSERT YOUR CODE
+        r = self.r
+        data = copy.deepcopy(self.ts_data)
+        for i in range(0,N,excl_zone):
+          bsf = float("inf")
+          for index, C in enumerate(data[i:i+excl_zone]):
+            dist = DTW_distance(self.query, C, r)
+            if dist < bsf:
+              bsf = dist
+            self.bestmatch[i] = dist
 
         return self.bestmatch
 
@@ -240,6 +250,8 @@ class UCR_DTW(BestMatchFinder):
         self.lb_KeoghCQ_num = 0
         
         # INSERT YOUR CODE
+
+
 
         return {'index' : self.bestmatch['index'],
                 'distance' : self.bestmatch['distance'],
