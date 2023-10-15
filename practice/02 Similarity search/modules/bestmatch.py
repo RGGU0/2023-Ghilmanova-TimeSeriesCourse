@@ -14,7 +14,7 @@ class BestMatchFinder:
     query : numpy.ndarrray
         Query.
     
-    ts_data : numpy.ndarrray
+    ts : numpy.ndarrray
         Time series.
     
     excl_zone_denom : float, default = 1
@@ -30,13 +30,13 @@ class BestMatchFinder:
         Warping window size.
     """
 
-    def __init__(self, ts_data, query=None, exclusion_zone=1, top_k=3, normalize=True, r=0.05, bestmatch = {}):
+    def __init__(self, ts, query=None, exclusion_zone=1, top_k=3, normalize=True, r=0.05, bestmatch = {}):
 
         self.query = copy.deepcopy(np.array(query))
-        if (len(np.shape(ts_data)) == 2): # time series set
-            self.ts_data = ts_data
+        if (len(np.shape(ts)) == 2): # time series set
+            self.ts = ts
         else:
-            self.ts_data = sliding_window(ts_data, len(query))
+            self.ts = sliding_window(ts, len(query))
 
         self.excl_zone_denom = exclusion_zone
         self.top_k = top_k
@@ -102,7 +102,6 @@ class BestMatchFinder:
         distances = np.copy(distances)
         top_k_match_idx = []
         top_k_match_dist = []
-        #print('kkk',np.shape(distances))
 
         for i in range(self.top_k):
             min_idx = np.argmin(distances)
@@ -142,7 +141,7 @@ class NaiveBestMatchFinder(BestMatchFinder):
         best_match_results: dict
             Dictionary containing results of the naive algorithm.
         """
-        N, m = self.ts_data.shape
+        N, m = self.ts.shape
         self.bestmatch = {}
         bsf = float("inf")
         
@@ -152,16 +151,27 @@ class NaiveBestMatchFinder(BestMatchFinder):
             excl_zone = int(np.ceil(m / self.excl_zone_denom))
         
         # INSERT YOUR CODE
+        dist_list = []
         r = self.r
-        data = copy.deepcopy(self.ts_data)
-        for i in range(0,N,excl_zone):
-          bsf = float("inf")
-          for index, C in enumerate(data[i:i+excl_zone]):
-            dist = DTW_distance(self.query, C, r)
-            if dist < bsf:
-              bsf = dist
-            self.bestmatch[i] = dist
+        data = copy.deepcopy(self.ts)
+        qery_len = len(self.query)
+        bsf = float("inf")
+        query = z_normalize(self.query)
+        #print(N,m,excl_zone,self.excl_zone_denom)
+        for i in range(0,N - qery_len,self.excl_zone_denom):
+          #print(self.query)
+          #print(data[i:i+qery_len][0])
+          
+          dist = DTW_distance(query, z_normalize(data[i:i+qery_len][0]), r)
+          if dist < bsf:
+            bsf = dist
+            dist_list.append(bsf)
+          else: 
+            dist_list.append(dist)
 
+        print(dist_list)
+        bsf = float("inf")
+        self.bestmatch = self._top_k_match( dist_list, m, bsf, excl_zone)
         return self.bestmatch
 
 
@@ -195,7 +205,9 @@ class UCR_DTW(BestMatchFinder):
         lb_Kim = 0
 
         # INSERT YOUR CODE
-        
+
+        lb_Kim =  ((subs1[0] - subs2[0]) ** 2 + (subs1[-1] - subs2[-1]) ** 2) ** 0.5
+   
         return lb_Kim
 
 
@@ -223,6 +235,22 @@ class UCR_DTW(BestMatchFinder):
         lb_Keogh = 0
 
         # INSERT YOUR CODE
+        m = np.shape(subs1)[0]
+        r = int(r*m)
+
+        for i in range(m):
+          start = max(0, i - r)
+          stop = min(m, i + r + 1)
+          u = np.max(subs2[start:stop])
+          l = np.min(subs2[start:stop])
+          c = subs1[i]
+          #print(u,c,l)
+          if c > u:
+            lb_Keogh += (c - u)**2
+            #print(lb_Keogh)
+          elif c < l:
+            lb_Keogh += (c - l)**2
+            #print(lb_Keogh)
 
         return lb_Keogh
 
@@ -236,7 +264,7 @@ class UCR_DTW(BestMatchFinder):
         best_match_results: dict
             Dictionary containing results of UCR-DTW algorithm.
         """
-        N, m = self.ts_data.shape
+        N, m = self.ts.shape
         
         bsf = float("inf")
         
@@ -251,7 +279,46 @@ class UCR_DTW(BestMatchFinder):
         
         # INSERT YOUR CODE
 
-
+        dist_list = []
+        r = self.r*m
+        ts = copy.deepcopy(self.ts)
+        query = z_normalize(copy.deepcopy(self.query))
+        qery_len = len(self.query)
+        
+        
+        bsf = float("inf")
+        for i in range(0,N - qery_len,self.excl_zone_denom):
+          #bsf = float("inf")
+          C =  z_normalize(ts[i:i+qery_len][0])
+          
+          if self._LB_Keogh(query,C,  r) < bsf:
+            #print('_LB_Keogh2',self._LB_Keogh(query,C,  r), bsf)
+            
+            if self._LB_Keogh(C,query,  r) < bsf:
+              #print('_LB_Keogh1',self._LB_Keogh(C,query,  r), bsf)
+              
+              if self._LB_Kim(C, query) < bsf:
+                #print('_LB_Kim',self._LB_Kim(C, query), bsf)
+                dist = DTW_distance(query, C, self.r)
+                #print(dist)
+                if dist < bsf:
+                  bsf = dist
+              else: 
+                self.lb_Kim_num += 1
+                #print('_LB_Kime',self._LB_Kim(C, query), bsf)
+                dist = float("inf")
+            else: 
+              self.lb_KeoghQC_num += 1
+              #print('_LB_Keogh1e',self._LB_Keogh(C,query,  r), bsf)
+              dist = float("inf")
+          else: 
+            self.lb_KeoghCQ_num += 1
+            #print('_LB_Keogh2e',self._LB_Keogh(query,C,  r), bsf)
+            dist = float("inf")
+          dist_list.append(dist)
+        bsf = float("inf")
+        #print(dist_list)
+        self.bestmatch = self._top_k_match( dist_list, m, bsf, excl_zone)
 
         return {'index' : self.bestmatch['index'],
                 'distance' : self.bestmatch['distance'],

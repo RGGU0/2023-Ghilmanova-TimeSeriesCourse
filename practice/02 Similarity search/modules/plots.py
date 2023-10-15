@@ -253,8 +253,8 @@ def plot_bestmatch_results(ts, query, bestmatch_results):
                 line=dict(color=px.colors.qualitative.Plotly[0])),
                 row=1, col=2)
     for i in bestmatch_results['index']:
-      start_res = i * query_len
-      stop_res = start_res + query_len
+      start_res = i
+      stop_res = i + query_len
       fig.add_trace(go.Scatter(x=np.arange(start_res,stop_res,1), y=ts[start_res:stop_res], 
                   line=dict(color=px.colors.qualitative.Plotly[1])),
                   row=1, col=2)
