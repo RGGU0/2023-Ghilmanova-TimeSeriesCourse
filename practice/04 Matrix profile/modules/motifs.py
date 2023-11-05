@@ -25,8 +25,20 @@ def top_k_motifs(matrix_profile, top_k=3):
     motifs_dist = []
 
     # INSERT YOUR CODE
-
+    motifs_dist = np.sort(matrix_profile['mp'])[:top_k]
+    motifs_idx = []
+    motifs_idx_left = []
+    motifs_idx_right = []
+    for dist in motifs_dist:
+      min_mp = np.where(matrix_profile['mp']==dist,matrix_profile['mpi'],None)
+      idxs = min_mp[min_mp != np.array(None)]
+      for i in idxs:
+        if i not in motifs_idx:
+          motifs_idx.append(i)
+          idx_i = np.where(matrix_profile['mpi']==i)[0][0]
+          motifs_idx_left.append(matrix_profile['indices']['left'][idx_i])
+          motifs_idx_right.append(matrix_profile['indices']['right'][idx_i])
     return {
-        "indices" : motifs_idx,
-        "distances" : motifs_dist
-        }
+            "indices" : np.array([motifs_idx_left,motifs_idx_right]).T,
+            "distances" : motifs_dist
+            }
