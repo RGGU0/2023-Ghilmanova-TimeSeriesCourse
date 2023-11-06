@@ -31,7 +31,6 @@ def top_k_discords(matrix_profile, top_k=3, exclusion_zone=None):
     # INSERT YOUR CODE
 
 
-    #mp = stumpy.stump(ts, m)
     P = matrix_profile['mp'].astype(np.float64)
 
     
@@ -47,7 +46,9 @@ def top_k_discords(matrix_profile, top_k=3, exclusion_zone=None):
 
         discords_idx[i] = mp_discord_idx
         discords_dist[i] = P[mp_discord_idx]
-        discords_nn_idx[i] = matrix_profile['mpi'][mp_discord_idx]
+        nnl = matrix_profile['indices']['left'][mp_discord_idx]
+        nnr = matrix_profile['indices']['right'][mp_discord_idx]
+        discords_nn_idx[i] = nnl if P[mp_discord_idx] - nnl < P[mp_discord_idx] - nnr else nnr
 
         core.apply_exclusion_zone(P, discords_idx[i], exclusion_zone, val=np.NINF)
     return {'indices': discords_idx,

@@ -6,7 +6,7 @@ import stumpy
 from stumpy import config
 from stumpy import core
 
-def compute_mp(ts1, m, exclusion_zone=None, ts2=None):
+def compute_mp(ts1, m, ts2=None,exclusion_zone=None,  ignore_trivial=False):
     """
     Compute the matrix profile.
 
@@ -33,9 +33,11 @@ def compute_mp(ts1, m, exclusion_zone=None, ts2=None):
     """
     
     # INSERT YOUR CODE
-    if exclusion_zone != None:
+    if exclusion_zone is not None:
       config.STUMPY_EXCL_ZONE_DENOM = exclusion_zone
-    mp = stumpy.stump(ts1.astype(float), m)
+    else: config.STUMPY_EXCL_ZONE_DENOM = np.inf
+    if ts2 != None: ts2 = ts2.astype(float)
+    mp = stumpy.stump(ts1.astype(float),  m,  ts2, ignore_trivial = ignore_trivial)
     return {'mp': mp[:,0],
             'mpi': mp[:,1],
             'm' : m,
